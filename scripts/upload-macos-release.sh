@@ -3,7 +3,7 @@ set -euo pipefail
 
 TAG="${1:?Usage: $0 <tag>  e.g. $0 v1.0.0}"
 
-DMG=$(find app/src-tauri/target/release/bundle/dmg -name "*.dmg" 2>/dev/null | head -1)
+DMG=$(find app/src-tauri/target/release/bundle/dmg -name "*.dmg" 2>/dev/null -print -quit)
 
 if [ -z "$DMG" ]; then
   echo "Error: no .dmg found in app/src-tauri/target/release/bundle/dmg/"

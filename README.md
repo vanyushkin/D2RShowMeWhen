@@ -17,8 +17,9 @@ Go to [**Releases**](https://github.com/vanyushkin/D2RShowMeWhen/releases/latest
 | Platform | File |
 |----------|------|
 | Windows | `D2RShowMeWhen_x.x.x_x64_en-US.msi` |
-| Linux / Steam Deck | `D2RShowMeWhen_x.x.x_amd64.AppImage` |
-| macOS | `D2RShowMeWhen_x.x.x_aarch64.dmg` |
+| Linux / Steam Deck (AppImage) | `D2RShowMeWhen_x.x.x_amd64.AppImage` |
+| Linux (deb) | `D2RShowMeWhen_x.x.x_amd64.deb` |
+| macOS | `D2RShowMeWhen_x.x.x_aarch64.dmg` *(uploaded after each release)* |
 
 ## Installation
 

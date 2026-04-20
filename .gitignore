@@ -22,6 +22,10 @@ app/src-tauri/gen/schemas/
 CLAUDE.md
 .claude/
 
+# Windows cruft
+Thumbs.db
+desktop.ini
+
 # Secrets
 *.env
 .env*

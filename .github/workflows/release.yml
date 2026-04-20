@@ -1,4 +1,7 @@
 name: Release
+# Builds Windows (MSI) and Linux (AppImage + deb) on tag push.
+# macOS builds are produced locally and uploaded via scripts/upload-macos-release.sh
+# (code-signing and notarization are not available in CI).
 
 on:
   push:
@@ -121,7 +124,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          cat > /tmp/notes.md << 'NOTES'
+          VERSION="${TAG#v}"
+          cat > /tmp/notes.md << NOTES
           ## What's included
           - Global hotkey activation (keyboard + mouse buttons)
           - Draggable always-on-top overlay windows per timer
@@ -132,24 +136,27 @@ jobs:
           ## Downloads
           | Platform | File |
           |----------|------|
-          | Windows | `D2RShowMeWhen_1.0.0_x64_en-US.msi` |
-          | Linux / Steam Deck | `D2RShowMeWhen_1.0.0_amd64.AppImage` or `.deb` |
-          | macOS | `D2RShowMeWhen_1.0.0_aarch64.dmg` (uploaded separately) |
+          | Windows | \`D2RShowMeWhen_${VERSION}_x64_en-US.msi\` |
+          | Linux / Steam Deck | \`D2RShowMeWhen_${VERSION}_amd64.AppImage\` or \`.deb\` |
+          | macOS | \`D2RShowMeWhen_${VERSION}_aarch64.dmg\` (uploaded separately) |
 
           ## Installation notes
 
           **macOS:** The app is not notarized. After copying to /Applications:
-          ```
+          \`\`\`
           sudo xattr -d com.apple.quarantine /Applications/D2RShowMeWhen.app
-          ```
+          \`\`\`
 
           **Steam Deck / Linux:** Global hotkeys require X11. On Steam Deck, use Desktop Mode.
           See the [README](https://github.com/vanyushkin/D2RShowMeWhen#steam-deck) for the full step-by-step guide.
           NOTES
 
-          gh release create "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "D2R Show Me When $TAG" \
-            --notes-file /tmp/notes.md \
-            artifacts/* \
-          || gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber artifacts/*
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber artifacts/*
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "D2R Show Me When $TAG" \
+              --notes-file /tmp/notes.md \
+              artifacts/*
+          fi
