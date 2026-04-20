@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+app/node_modules/
+app/dist/
+
+# Rust / Tauri
+app/src-tauri/target/
+app/src-tauri/gen/schemas/
+
+# AI / dev-local
+CLAUDE.md
+.claude/
+
+# Secrets
+*.env
+.env*
+*.pem
+*.key
+*.p12
+*.pfx

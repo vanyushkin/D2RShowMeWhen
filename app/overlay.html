@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+    /* Drag region: covers the whole window in edit mode.
+       data-tauri-drag-region is handled natively by Tauri/WKWebView
+       so the window can be dragged without any JS code. */
+    #drag-region {
+      position: fixed;
+      inset: 0;
+      cursor: grab;
+      display: none;        /* hidden in normal (click-through) mode */
+      z-index: 10;
+    }
+    #drag-region:active {
+      cursor: grabbing;
+    }
+    body.edit-mode #drag-region {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="drag-region" data-tauri-drag-region></div>
+  <script type="module" src="/src/overlay.ts"></script>
+</body>
+</html>

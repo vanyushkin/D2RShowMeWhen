@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Required for WKWebView JIT compilation -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Required for WKWebView -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Required for Tauri's dynamic library loading -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!--
+      Input Monitoring (rdev / CGEventTap) is a TCC permission granted by the user
+      at runtime via System Settings → Privacy & Security → Input Monitoring.
+      No entitlement key is required — the OS prompts automatically on first use.
+      For a notarized/signed distribution build, the app must be in the correct
+      TCC category, which is handled by the OS when the user grants permission.
+    -->
+</dict>
+</plist>
