@@ -21,6 +21,7 @@ app/src-tauri/gen/schemas/
 # AI / dev-local
 CLAUDE.md
 .claude/
+docs/superpowers/
 
 # Windows cruft
 Thumbs.db
