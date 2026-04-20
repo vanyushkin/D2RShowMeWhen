@@ -201,18 +201,24 @@ fn first_existing_migration_source() -> Option<PathBuf> {
 }
 
 fn migration_candidates() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-
-    // macOS-specific: original Python app's Application Support directory
-    #[cfg(target_os = "macos")]
-    if let Some(home) = dirs::home_dir() {
-        paths.push(
-            home.join("Library")
-                .join("Application Support")
-                .join("D2R_Show_Me_When_Mac")
-                .join("profiles.json"),
-        );
+    #[cfg(not(target_os = "macos"))]
+    {
+        Vec::new()
     }
 
-    paths
+    #[cfg(target_os = "macos")]
+    {
+        let mut paths = Vec::new();
+
+        if let Some(home) = dirs::home_dir() {
+            paths.push(
+                home.join("Library")
+                    .join("Application Support")
+                    .join("D2R_Show_Me_When_Mac")
+                    .join("profiles.json"),
+            );
+        }
+
+        paths
+    }
 }

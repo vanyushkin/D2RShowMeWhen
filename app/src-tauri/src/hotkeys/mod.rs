@@ -259,9 +259,8 @@ fn key_to_modifier(key: &Key) -> Option<HotkeyModifier> {
 mod macos_tap;
 
 /// Trigger the macOS system permission dialog for Input Monitoring.
-/// No-op on non-macOS platforms.
+#[cfg(target_os = "macos")]
 pub fn request_input_monitoring_access() {
-    #[cfg(target_os = "macos")]
     macos_tap::request_input_monitoring_access();
 }
 
