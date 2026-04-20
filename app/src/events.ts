@@ -141,7 +141,7 @@ export function handleButtonClick(el: HTMLElement, action: string): void {
 
     // Overlay controls
     case 'save-state':       void saveState();            break;
-    case 'open-overlays':    void openOverlays();         break;
+    case 'open-overlays':    void openOverlays({ enterEditMode: true }); break;
     case 'close-overlays':   void closeOverlays();        break;
     case 'toggle-edit-mode': void toggleOverlayEditMode(); break;
     case 'reset-layout':     void resetOverlayLayout();   break;

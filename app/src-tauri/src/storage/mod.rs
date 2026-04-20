@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use tauri::{AppHandle, Manager};
 use thiserror::Error;
 
@@ -34,8 +35,9 @@ pub fn icons_from_resources(app: &AppHandle) -> Vec<IconAsset> {
     collect_icons(&icon_dir)
 }
 
-/// Return the absolute path to a single icon file by filename.
-/// Returns an empty string if the file cannot be found.
+/// Return a browser-loadable string for a single icon file by filename.
+/// Prefer an in-memory data URL to avoid platform-specific asset path issues,
+/// falling back to an absolute file path if reading fails.
 pub fn icon_file_path(app: &AppHandle, file_name: &str) -> String {
     if file_name.is_empty() {
         return String::new();
@@ -43,7 +45,7 @@ pub fn icon_file_path(app: &AppHandle, file_name: &str) -> String {
     let dir = resolve_icon_dir(app);
     let path = dir.join(file_name);
     if path.exists() {
-        path.to_string_lossy().to_string()
+        icon_asset_url(&path).unwrap_or_else(|| path.to_string_lossy().to_string())
     } else {
         String::new()
     }
@@ -107,13 +109,26 @@ fn collect_icons(icon_dir: &Path) -> Vec<IconAsset> {
                 file_name,
                 label,
                 file_path: path.to_string_lossy().to_string(),
-                asset_url: None,
+                asset_url: icon_asset_url(&path),
             });
         }
     }
 
     assets.sort_by(|a, b| a.label.cmp(&b.label));
     assets
+}
+
+fn icon_asset_url(path: &Path) -> Option<String> {
+    let ext = path.extension()?.to_str()?.to_ascii_lowercase();
+    let mime = match ext.as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        _ => return None,
+    };
+
+    let bytes = fs::read(path).ok()?;
+    Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
 }
 
 // ── State load / save ─────────────────────────────────────────────────────────

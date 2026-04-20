@@ -7,17 +7,16 @@ pub fn descriptor() -> (OverlayCapabilities, BackendAdapterInfo) {
             transparent_overlay: true,
             click_through: true,
             notes: vec![
-                "Quartz event taps and native macOS overlay windows are the primary target.".into(),
-                "The Tauri shell is now ready for moving listener and overlay logic into Rust.".into(),
+                "macOS uses a custom Quartz event tap for global input and Tauri overlay windows for rendering.".into(),
+                "This is the most mature target, but it still relies on runtime permission and window-behaviour validation.".into(),
             ],
         },
         BackendAdapterInfo {
             name: "Quartz macOS adapter".into(),
-            stage: "scaffolded".into(),
+            stage: "implemented".into(),
             next_steps: vec![
-                "Implement accessibility and input-monitoring diagnostics.".into(),
-                "Add global hotkey capture via Quartz event tap.".into(),
-                "Render transparent click-through overlay windows from Rust.".into(),
+                "Improve Input Monitoring diagnostics and recovery UX.".into(),
+                "Continue hardening overlay behaviour across unsigned builds and app updates.".into(),
             ],
         },
     )

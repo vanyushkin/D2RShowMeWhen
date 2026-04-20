@@ -202,7 +202,7 @@ export async function saveState(): Promise<void> {
   }
 }
 
-export async function openOverlays(): Promise<void> {
+export async function openOverlays(options: { enterEditMode?: boolean } = {}): Promise<void> {
   try {
     const count    = await invoke<number>('open_overlays', { statePayload: ctx.state });
     const regCount = await invoke<number>('update_hotkey_registrations', { statePayload: ctx.state });
@@ -211,6 +211,10 @@ export async function openOverlays(): Promise<void> {
     if (!ctx.watching) {
       await invoke('set_watching', { enabled: true });
       ctx.watching = true;
+    }
+    if (options.enterEditMode) {
+      await invoke('set_overlays_edit_mode', { enabled: true });
+      ctx.overlayEditMode = true;
     }
     setSaveMsg(tf('msgOverlaysShown', { count, regs: regCount }), 'success');
     render();

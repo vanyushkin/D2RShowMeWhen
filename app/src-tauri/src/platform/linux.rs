@@ -7,16 +7,16 @@ pub fn x11_descriptor() -> (OverlayCapabilities, BackendAdapterInfo) {
             transparent_overlay: true,
             click_through: false,
             notes: vec![
-                "X11 is the first Linux target for Steam Deck and gamescope-style usage.".into(),
-                "Click-through semantics depend on compositor behavior and need dedicated validation.".into(),
+                "The current X11 runtime uses the shared desktop path: rdev hotkeys plus Tauri overlay windows.".into(),
+                "Steam Deck and compositor-specific behaviour still need live validation before this can be considered stable.".into(),
             ],
         },
         BackendAdapterInfo {
-            name: "X11 adapter".into(),
-            stage: "planned".into(),
+            name: "Linux X11 adapter".into(),
+            stage: "experimental".into(),
             next_steps: vec![
-                "Validate gamescope/X11 assumptions on Steam Deck.".into(),
-                "Implement hotkey listener and transparent overlay path for X11.".into(),
+                "Validate overlay visibility and input behaviour on Steam Deck Desktop Mode and gamescope-adjacent setups.".into(),
+                "Decide whether click-through remains compositor-dependent or gets an explicit X11-specific implementation.".into(),
             ],
         },
     )

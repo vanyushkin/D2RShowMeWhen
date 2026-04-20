@@ -7,15 +7,16 @@ pub fn descriptor() -> (OverlayCapabilities, BackendAdapterInfo) {
             transparent_overlay: true,
             click_through: true,
             notes: vec![
-                "Windows parity will rely on Win32 hooks and layered transparent windows.".into(),
+                "The current Windows runtime uses rdev for global hotkeys and Tauri transparent windows for overlays.".into(),
+                "Packaged builds still need validation for transparent window lifecycle and click-through behaviour.".into(),
             ],
         },
         BackendAdapterInfo {
-            name: "Win32 adapter".into(),
-            stage: "planned".into(),
+            name: "Windows desktop adapter".into(),
+            stage: "experimental".into(),
             next_steps: vec![
-                "Mirror macOS runtime contracts for hotkeys and overlay timers.".into(),
-                "Add layered-window overlay renderer.".into(),
+                "Harden packaged-release behaviour for show/hide and first-run overlay creation.".into(),
+                "Add Windows-specific diagnostics around WebView and transparent overlay failures.".into(),
             ],
         },
     )

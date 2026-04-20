@@ -206,6 +206,7 @@ fn hide_all_overlays(app: &tauri::AppHandle) {
     for i in 0..MAX_TIMERS {
         let label = format!("overlay-{}", i);
         if let Some(win) = app.get_webview_window(&label) {
+            let _ = win.set_ignore_cursor_events(false);
             let _ = win.hide();
         }
     }
@@ -343,7 +344,7 @@ fn open_overlays(
                 p.pos[1] as f64,
             ));
             let _ = win.set_always_on_top(true);
-            let _ = win.set_ignore_cursor_events(true);
+            let _ = win.set_ignore_cursor_events(false);
             let _ = win.hide();
             // Force a full webview reload so the overlay script re-runs init().
             let _ = win.eval("window.location.reload()");
@@ -362,6 +363,7 @@ fn open_overlays(
         .inner_size(p.win_size as f64, p.win_size as f64)
         .position(p.pos[0] as f64, p.pos[1] as f64)
         .decorations(false)
+        .resizable(false)
         .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
@@ -370,8 +372,15 @@ fn open_overlays(
         .map_err(|e: tauri::Error| e.to_string())?;
 
         // Re-apply after build to guard against any platform reset.
+        // On Windows, transparent child windows are more reliable if their size
+        // and position are reaffirmed after creation.
+        let _ = win.set_size(LogicalSize::new(p.win_size as f64, p.win_size as f64));
+        let _ = win.set_position(tauri::LogicalPosition::new(
+            p.pos[0] as f64,
+            p.pos[1] as f64,
+        ));
         let _ = win.set_always_on_top(true);
-        let _ = win.set_ignore_cursor_events(true);
+        let _ = win.set_ignore_cursor_events(false);
         count += 1;
     }
 
@@ -392,6 +401,7 @@ fn show_overlay(index: usize, app: tauri::AppHandle) {
     if let Some(win) = app.get_webview_window(&label) {
         let _ = win.show();
         let _ = win.set_always_on_top(true);
+        let _ = win.set_ignore_cursor_events(true);
     }
 }
 
@@ -400,6 +410,7 @@ fn show_overlay(index: usize, app: tauri::AppHandle) {
 fn hide_overlay(index: usize, app: tauri::AppHandle) {
     let label = format!("overlay-{}", index);
     if let Some(win) = app.get_webview_window(&label) {
+        let _ = win.set_ignore_cursor_events(false);
         let _ = win.hide();
     }
 }
@@ -428,15 +439,20 @@ fn set_overlays_edit_mode(
     for index in configs.keys() {
         let label = format!("overlay-{}", index);
         if let Some(win) = app.get_webview_window(&label) {
-            let _ = win.set_ignore_cursor_events(!enabled);
             if enabled {
+                let _ = win.set_ignore_cursor_events(false);
                 // Show all overlays so the user can see and reposition them.
                 let _ = win.show();
                 let _ = win.set_always_on_top(true);
             } else {
-                // Hide overlays whose timer is not currently running.
-                // Rust is authoritative here — don't rely on JS event delivery.
-                if !timers.contains_key(index) {
+                if timers.contains_key(index) {
+                    let _ = win.show();
+                    let _ = win.set_always_on_top(true);
+                    let _ = win.set_ignore_cursor_events(true);
+                } else {
+                    // Hide overlays whose timer is not currently running.
+                    // Rust is authoritative here — don't rely on JS event delivery.
+                    let _ = win.set_ignore_cursor_events(false);
                     let _ = win.hide();
                 }
             }

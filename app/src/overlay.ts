@@ -64,6 +64,10 @@ let blinkOn          = false;
 let blinkTimer: ReturnType<typeof setInterval> | null = null;
 let showHotkeyLabel  = true;
 
+function resolveIconUrl(iconPath: string): string {
+  return iconPath.startsWith('data:') ? iconPath : convertFileSrc(iconPath);
+}
+
 // ── Canvas helpers ────────────────────────────────────────────────────────────
 
 function resizeCanvas(size: number): void {
@@ -218,7 +222,7 @@ async function init(): Promise<void> {
 
   // 3. Load icon
   if (config.iconPath) {
-    const url = convertFileSrc(config.iconPath);
+    const url = resolveIconUrl(config.iconPath);
     const img = new Image();
     await new Promise<void>(resolve => {
       img.onload  = () => resolve();
@@ -292,7 +296,7 @@ async function init(): Promise<void> {
 
       // Reload icon if path changed
       if (config.iconPath) {
-        const url = convertFileSrc(config.iconPath);
+        const url = resolveIconUrl(config.iconPath);
         const img = new Image();
         await new Promise<void>(resolve => {
           img.onload  = () => resolve();
