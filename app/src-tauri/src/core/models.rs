@@ -218,6 +218,7 @@ pub struct IconAsset {
 pub struct OverlayTimerConfig {
     pub timer_index: usize,
     pub icon_path: String,
+    pub position: [i32; 2],
     pub duration: u16,
     pub blink_threshold: u8,
     pub blink_color: String,

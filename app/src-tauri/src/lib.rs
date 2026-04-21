@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use core::models::{AppState, BootstrapPayload, OverlayTimerConfig, SaveResult};
 use hotkeys::{ActiveTimers, GlobalHotkeys, HotkeyRegistration, Registrations, Watching};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 // ── Overlay state ─────────────────────────────────────────────────────────────
 
@@ -194,6 +194,74 @@ fn compute_win_size(timer_size: u16) -> u32 {
     size_px + 16
 }
 
+fn set_overlay_clickthrough(win: &tauri::WebviewWindow, ignore: bool) {
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = win.set_ignore_cursor_events(ignore);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = (win, ignore);
+    }
+}
+
+fn apply_overlay_window_config(
+    win: &tauri::WebviewWindow,
+    pos: [i32; 2],
+    win_size: u32,
+) {
+    use tauri::LogicalSize;
+
+    let _ = win.set_size(LogicalSize::new(win_size as f64, win_size as f64));
+    let _ = win.set_position(tauri::LogicalPosition::new(pos[0] as f64, pos[1] as f64));
+    let _ = win.set_always_on_top(true);
+}
+
+fn ensure_overlay_window(
+    app: &tauri::AppHandle,
+    index: usize,
+    overlay_configs: &OverlayConfigs,
+) -> Result<tauri::WebviewWindow, String> {
+    use tauri::{WebviewUrl, WebviewWindowBuilder};
+
+    let cfg = {
+        let configs = overlay_configs.lock().map_err(|e| e.to_string())?;
+        configs
+            .get(&index)
+            .cloned()
+            .ok_or_else(|| format!("No overlay config for index {}", index))?
+    };
+
+    let label = format!("overlay-{}", index);
+    if let Some(win) = app.get_webview_window(&label) {
+        apply_overlay_window_config(&win, cfg.position, cfg.win_size);
+        let _ = win.emit("config-updated", ());
+        return Ok(win);
+    }
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        &label,
+        WebviewUrl::App(format!("overlay.html?index={}", index).into()),
+    )
+    .title("")
+    .inner_size(cfg.win_size as f64, cfg.win_size as f64)
+    .position(cfg.position[0] as f64, cfg.position[1] as f64)
+    .decorations(false)
+    .resizable(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .visible(false)
+    .build()
+    .map_err(|e: tauri::Error| e.to_string())?;
+
+    apply_overlay_window_config(&win, cfg.position, cfg.win_size);
+    set_overlay_clickthrough(&win, false);
+    Ok(win)
+}
+
 /// Hide all overlay windows without destroying them.
 ///
 /// We use `hide()` instead of `close()` throughout so that the Tauri window label
@@ -206,7 +274,7 @@ fn hide_all_overlays(app: &tauri::AppHandle) {
     for i in 0..MAX_TIMERS {
         let label = format!("overlay-{}", i);
         if let Some(win) = app.get_webview_window(&label) {
-            let _ = win.set_ignore_cursor_events(false);
+            set_overlay_clickthrough(&win, false);
             let _ = win.hide();
         }
     }
@@ -219,7 +287,6 @@ fn open_overlays(
     overlay_configs: tauri::State<OverlayConfigs>,
 ) -> Result<usize, String> {
     use core::models::MAX_TIMERS;
-    use tauri::{LogicalSize, WebviewUrl, WebviewWindowBuilder};
 
     let profile = state_payload
         .profiles
@@ -288,6 +355,7 @@ fn open_overlays(
             cfg: OverlayTimerConfig {
                 timer_index: r.index,
                 icon_path: r.icon_path,
+                position: [r.saved_x, r.saved_y],
                 duration: timer.duration,
                 blink_threshold: timer.blink_threshold,
                 blink_color: timer.blink_color.clone(),
@@ -315,77 +383,29 @@ fn open_overlays(
         if !enabled_indices.contains(&i) {
             let label = format!("overlay-{}", i);
             if let Some(win) = app.get_webview_window(&label) {
+                set_overlay_clickthrough(&win, false);
                 let _ = win.hide();
             }
         }
     }
 
-    // ── Phase 3: show or create windows for enabled timers.
-    //
-    // If the window already exists (was hidden by close_overlays or a previous
-    // open_overlays call), we resize/reposition it, ensure always-on-top is set,
-    // show it, then reload the webview so init() runs fresh against the new config.
-    // Reload is used instead of config-updated because a previous init() failure
-    // leaves no listeners — only a full reload recovers the window reliably.
-    //
-    // If it doesn't exist yet, we create it fresh.
+    // ── Phase 3: refresh only already-created windows.
+    // New overlay windows are created lazily on first actual show request.
     let mut count = 0usize;
     for p in pending {
         let label = format!("overlay-{}", p.index);
 
         if let Some(win) = app.get_webview_window(&label) {
-            // Existing window — resize, reposition, restore settings, then
-            // reload the webview so init() runs fresh with the latest config.
-            // The window stays hidden; overlay.ts will show it when a timer fires
-            // or when edit mode is enabled.
-            let _ = win.set_size(LogicalSize::new(p.win_size as f64, p.win_size as f64));
-            let _ = win.set_position(tauri::LogicalPosition::new(
-                p.pos[0] as f64,
-                p.pos[1] as f64,
-            ));
-            let _ = win.set_always_on_top(true);
-            let _ = win.set_ignore_cursor_events(false);
+            apply_overlay_window_config(&win, p.pos, p.win_size);
+            set_overlay_clickthrough(&win, false);
             let _ = win.hide();
-            // Force a full webview reload so the overlay script re-runs init().
-            let _ = win.eval("window.location.reload()");
+            let _ = win.emit("config-updated", ());
             count += 1;
-            continue;
         }
-
-        // New window — created hidden. overlay.ts shows it when a timer fires
-        // or when the user enters edit mode to reposition overlays.
-        let win = WebviewWindowBuilder::new(
-            &app,
-            &label,
-            WebviewUrl::App(format!("overlay.html?index={}", p.index).into()),
-        )
-        .title("")
-        .inner_size(p.win_size as f64, p.win_size as f64)
-        .position(p.pos[0] as f64, p.pos[1] as f64)
-        .decorations(false)
-        .resizable(false)
-        .transparent(true)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .visible(false)
-        .build()
-        .map_err(|e: tauri::Error| e.to_string())?;
-
-        // Re-apply after build to guard against any platform reset.
-        // On Windows, transparent child windows are more reliable if their size
-        // and position are reaffirmed after creation.
-        let _ = win.set_size(LogicalSize::new(p.win_size as f64, p.win_size as f64));
-        let _ = win.set_position(tauri::LogicalPosition::new(
-            p.pos[0] as f64,
-            p.pos[1] as f64,
-        ));
-        let _ = win.set_always_on_top(true);
-        let _ = win.set_ignore_cursor_events(false);
-        count += 1;
     }
 
-    log::info!("Shown/created {} overlay windows", count);
-    Ok(count)
+    log::info!("Overlay system armed for {} timers ({} existing windows refreshed)", enabled_indices.len(), count);
+    Ok(enabled_indices.len())
 }
 
 #[tauri::command]
@@ -397,11 +417,11 @@ fn close_overlays(app: tauri::AppHandle) -> Result<(), String> {
 /// Called by overlay.ts when its timer starts — show this overlay window.
 #[tauri::command]
 fn show_overlay(index: usize, app: tauri::AppHandle) {
-    let label = format!("overlay-{}", index);
-    if let Some(win) = app.get_webview_window(&label) {
+    let overlays: OverlayConfigs = app.state::<OverlayConfigs>().inner().clone();
+    if let Ok(win) = ensure_overlay_window(&app, index, &overlays) {
         let _ = win.show();
         let _ = win.set_always_on_top(true);
-        let _ = win.set_ignore_cursor_events(true);
+        set_overlay_clickthrough(&win, true);
     }
 }
 
@@ -410,7 +430,7 @@ fn show_overlay(index: usize, app: tauri::AppHandle) {
 fn hide_overlay(index: usize, app: tauri::AppHandle) {
     let label = format!("overlay-{}", index);
     if let Some(win) = app.get_webview_window(&label) {
-        let _ = win.set_ignore_cursor_events(false);
+        set_overlay_clickthrough(&win, false);
         let _ = win.hide();
     }
 }
@@ -431,33 +451,40 @@ fn set_overlays_edit_mode(
     overlay_configs: tauri::State<OverlayConfigs>,
     active_timers: tauri::State<ActiveTimers>,
 ) -> Result<(), String> {
-    use tauri::Emitter;
+    let indices: Vec<usize> = {
+        let configs = overlay_configs.lock().map_err(|e| e.to_string())?;
+        configs.keys().copied().collect()
+    };
+    let running_indices: std::collections::HashSet<usize> = {
+        let timers = active_timers.lock().map_err(|e| e.to_string())?;
+        timers.keys().copied().collect()
+    };
 
-    let configs = overlay_configs.lock().map_err(|e| e.to_string())?;
-    let timers  = active_timers.lock().map_err(|e| e.to_string())?;
-
-    for index in configs.keys() {
+    for index in &indices {
         let label = format!("overlay-{}", index);
-        if let Some(win) = app.get_webview_window(&label) {
-            if enabled {
-                let _ = win.set_ignore_cursor_events(false);
-                // Show all overlays so the user can see and reposition them.
-                let _ = win.show();
-                let _ = win.set_always_on_top(true);
-            } else {
-                if timers.contains_key(index) {
-                    let _ = win.show();
-                    let _ = win.set_always_on_top(true);
-                    let _ = win.set_ignore_cursor_events(true);
-                } else {
-                    // Hide overlays whose timer is not currently running.
-                    // Rust is authoritative here — don't rely on JS event delivery.
-                    let _ = win.set_ignore_cursor_events(false);
-                    let _ = win.hide();
-                }
-            }
-            let _ = win.emit("edit-mode-changed", enabled);
+        let win = if enabled {
+            ensure_overlay_window(&app, *index, overlay_configs.inner())?
+        } else if let Some(win) = app.get_webview_window(&label) {
+            win
+        } else {
+            continue;
+        };
+
+        if enabled {
+            set_overlay_clickthrough(&win, false);
+            let _ = win.show();
+            let _ = win.set_always_on_top(true);
+        } else if running_indices.contains(index) {
+            let _ = win.show();
+            let _ = win.set_always_on_top(true);
+            set_overlay_clickthrough(&win, true);
+        } else {
+            // Hide overlays whose timer is not currently running.
+            // Rust is authoritative here — don't rely on JS event delivery.
+            set_overlay_clickthrough(&win, false);
+            let _ = win.hide();
         }
+        let _ = win.emit("edit-mode-changed", enabled);
     }
 
     // When exiting edit mode, read all window positions from the OS and
@@ -466,7 +493,7 @@ fn set_overlays_edit_mode(
     // logical pixels, which is what WebviewWindowBuilder::position() expects.
     if !enabled {
         let mut positions: HashMap<usize, [i32; 2]> = HashMap::new();
-        for index in configs.keys() {
+        for index in &indices {
             let label = format!("overlay-{}", index);
             if let Some(win) = app.get_webview_window(&label) {
                 if let Ok(pos) = win.outer_position() {

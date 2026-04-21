@@ -2,7 +2,7 @@
 
 Based on D2R Show Me When v3.0 by GlassCannon — rewritten in Tauri/Rust for
 cross-platform support (macOS Apple Silicon, Windows, Linux/Steam Deck).
-Current release: **1.0.2**
+Current release: **1.0.3**
 
 ---
 
