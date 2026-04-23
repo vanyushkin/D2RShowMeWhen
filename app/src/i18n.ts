@@ -72,6 +72,9 @@ const translations = {
     msgResetPermissionDone: 'Done — allow access in the system dialog, then restart the app.',
     msgResetPermissionError: 'Reset failed:',
     msgInputMonitoringHint: 'Click Allow in the system dialog that appeared, then restart the app.',
+    msgLinuxInputHint: 'Run: sudo usermod -aG input $USER — then log out and back in.',
+    msgWaylandError: 'Wayland detected: global hotkeys are not supported. Run the app on X11 (or on Steam Deck use Desktop Mode).',
+    msgLinuxCompositorHint: 'If overlays have a white background, enable a compositor (e.g. picom).',
   },
   ru: {
     profile: 'Профиль:',
@@ -137,6 +140,9 @@ const translations = {
     msgResetPermissionDone: 'Готово — разрешите доступ в диалоге системы, затем перезапустите приложение.',
     msgResetPermissionError: 'Ошибка сброса:',
     msgInputMonitoringHint: 'Нажмите Разрешить в появившемся диалоге, затем перезапустите приложение.',
+    msgLinuxInputHint: 'Выполните: sudo usermod -aG input $USER — затем выйдите из системы и войдите снова.',
+    msgWaylandError: 'Обнаружен Wayland: глобальные горячие клавиши не поддерживаются. Запустите приложение на X11 (на Steam Deck используйте Режим рабочего стола).',
+    msgLinuxCompositorHint: 'Если оверлеи отображаются на белом фоне, включите compositor (например picom).',
   },
 } as const;
 
