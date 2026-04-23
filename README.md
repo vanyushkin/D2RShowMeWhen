@@ -83,6 +83,16 @@ npm run tauri:build
 
 Output: `app/src-tauri/target/release/bundle/`
 
+## Platform Support
+
+| Platform | Status |
+|----------|--------|
+| **macOS** (Apple Silicon, 14+) | ✅ Tested by developer |
+| **Windows** (10 / 11, x64) | ✅ Tested by developer |
+| **Linux / Steam Deck** | ⚠️ Community-supported — not tested by developer |
+
+Linux builds are provided and the code paths are in place, but overlay behaviour, hotkey reliability, and Steam Deck gamescope compatibility have not been validated on real hardware by the author. Bug reports and PRs from Linux users are very welcome.
+
 ## Known Limitations
 
 - **Steam Deck / Wayland**: global hotkeys require X11. Use Desktop Mode on Steam Deck.
