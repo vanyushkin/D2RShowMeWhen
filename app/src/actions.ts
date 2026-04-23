@@ -5,6 +5,8 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { LogicalSize } from '@tauri-apps/api/dpi';
 import { ctx } from './ctx';
 import { render, setSaveMsg, updateTimerRowDisplay, setModalCallbacks } from './render';
 import { activeProfile, defaultTimer, ensureProfileSelection, resolveImportName } from './utils';
@@ -182,6 +184,15 @@ export function importConfig(): void {
 
 // ── Tauri commands ────────────────────────────────────────────────────────────
 
+/**
+ * Silently persist AppState to disk without updating hotkeys or overlays.
+ * Used for preference-only changes (lang, uiScale) that don't affect runtime
+ * behaviour and shouldn't trigger the full save UI flow.
+ */
+export async function autoSave(): Promise<void> {
+  await invoke('save_app_state', { payload: ctx.state }).catch(() => {});
+}
+
 export async function saveState(): Promise<void> {
   ensureProfileSelection();
   if (ctx.overlayEditMode) {
@@ -274,6 +285,30 @@ export async function toggleOverlayEditMode(): Promise<void> {
   } catch (err) {
     setSaveMsg(`${t('msgEditModeError')} ${String(err)}`, 'error');
   }
+}
+
+// ── UI scale ──────────────────────────────────────────────────────────────────
+
+// Default window dimensions (must match tauri.conf.json window[0] width/height).
+const BASE_W = 720;
+const BASE_H = 580;
+
+/**
+ * Apply a UI zoom level (100 = default, 150 = 1.5×, …).
+ * Sets CSS zoom on <html> and resizes the OS window proportionally so the
+ * content continues to fill the window at the new scale.
+ */
+export function applyUiScale(scale: number): void {
+  document.documentElement.style.zoom = String(scale / 100);
+  const w = Math.round(BASE_W * scale / 100);
+  const h = Math.round(BASE_H * scale / 100);
+  ctx.state.windowWidth  = w;
+  ctx.state.windowHeight = h;
+  // Defer resize to next animation frame so the CSS zoom paint settles first.
+  requestAnimationFrame(() => {
+    getCurrentWindow().setSize(new LogicalSize(w, h))
+      .catch(err => setSaveMsg(`Resize error: ${String(err)}`, 'error'));
+  });
 }
 
 // ── Timer event handling ──────────────────────────────────────────────────────

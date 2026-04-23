@@ -128,6 +128,20 @@ pub struct AppState {
     /// When true, overlays open automatically on app launch.
     #[serde(default)]
     pub auto_show_overlays: bool,
+    /// UI language preference ("en" or "ru").
+    /// Empty string means "not yet set" — JS will migrate from localStorage.
+    #[serde(default)]
+    pub lang: String,
+    /// UI zoom scale percentage (100 = default, 125, 150, …).
+    /// Zero means "not yet set" — JS will migrate from localStorage.
+    #[serde(default)]
+    pub ui_scale: u8,
+    /// Last saved main window width in logical pixels (0 = use default).
+    #[serde(default)]
+    pub window_width: u32,
+    /// Last saved main window height in logical pixels (0 = use default).
+    #[serde(default)]
+    pub window_height: u32,
 }
 
 impl AppState {

@@ -154,14 +154,16 @@ function draw(): void {
     ctx.shadowColor  = 'rgba(0,0,0,0.95)';
     ctx.shadowBlur   = 4;
     ctx.fillStyle    = editMode ? '#ffffff' : 'rgba(255,255,255,0.75)';
-    ctx.fillText(label, cx, size - 2);
+    ctx.fillText(label, cx, cy + r - 2);
     ctx.shadowBlur   = 0;
   }
 
   // 6. Edit-mode dashed border indicator.
+  // Drawn at r - 2 (inside the canvas circle) so it stays within the Win32
+  // clip region, which now matches the CSS circle exactly (radius = r).
   if (editMode) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth   = 1.5;
     ctx.setLineDash([4, 3]);
@@ -184,7 +186,7 @@ function stopBlink(): void {
 
 // ── Timer state update ────────────────────────────────────────────────────────
 
-function applyTimerState(p: TimerTickPayload): void {
+async function applyTimerState(p: TimerTickPayload): Promise<void> {
   if (p.timerIndex !== timerIndex) return;
 
   if (p.finished) {
@@ -199,8 +201,12 @@ function applyTimerState(p: TimerTickPayload): void {
     remaining    = p.remainingSecs;
     total        = p.totalSecs;
     if (!timerRunning) {
-      // First tick — ask Rust to show this window.
+      // First tick — clip window to circle THEN show it.
+      // window.devicePixelRatio is always authoritative in WebView2 (works
+      // correctly at any DPI including 250% in Parallels / HiDPI setups).
       timerRunning = true;
+      const physW = Math.round((config?.winSize ?? 64) * (window.devicePixelRatio || 1));
+      await invoke('apply_circular_clip', { index: timerIndex, physicalWidth: physW }).catch(() => {});
       void invoke('show_overlay', { index: timerIndex });
     }
     const nearEnd = remaining <= (config?.blinkThreshold ?? 5);
@@ -217,8 +223,12 @@ async function init(): Promise<void> {
   // Initialise label visibility from the persisted per-profile value.
   showHotkeyLabel = config.showHotkeyLabels;
 
-  // 2. Size canvas
+  // 2. Size canvas and immediately apply the circular clip.
+  // window.devicePixelRatio is always correct in WebView2 — the browser
+  // reports the authoritative DPR even while the window is still hidden.
   resizeCanvas(config.winSize);
+  const physW = Math.round(config.winSize * (window.devicePixelRatio || 1));
+  void invoke('apply_circular_clip', { index: timerIndex, physicalWidth: physW }).catch(() => {});
 
   // 3. Load icon
   if (config.iconPath) {
@@ -242,7 +252,7 @@ async function init(): Promise<void> {
 
   // 6. Event subscription (low-latency path)
   await listen<TimerTickPayload>('timer_tick', event => {
-    applyTimerState(event.payload);
+    void applyTimerState(event.payload);
   });
 
   // 7. Polling fallback — catches any events missed during async init
@@ -251,7 +261,7 @@ async function init(): Promise<void> {
     try {
       const state = await invoke<TimerTickPayload | null>('get_active_timer_state', { timerIndex });
       if (state) {
-        applyTimerState(state);
+        void applyTimerState(state);
       } else if (timerRunning) {
         // Timer finished/cancelled between ticks — reset and hide.
         timerRunning = false;
@@ -273,10 +283,15 @@ async function init(): Promise<void> {
   // 9. Edit-mode changes from Rust (via set_overlays_edit_mode)
   // Rust already handles show/hide at the window level; this listener only
   // updates local JS state (blink behaviour, dashed border indicator).
-  await listen<boolean>('edit-mode-changed', event => {
+  await listen<boolean>('edit-mode-changed', async event => {
     editMode = event.payload;
     document.body.classList.toggle('edit-mode', editMode);
     if (!editMode) stopBlink();
+    if (editMode && config) {
+      // Re-apply clip after entering edit mode (window was just shown by Rust).
+      const physW = Math.round(config.winSize * (window.devicePixelRatio || 1));
+      await invoke('apply_circular_clip', { index: timerIndex, physicalWidth: physW }).catch(() => {});
+    }
     draw();
   });
 
@@ -293,8 +308,11 @@ async function init(): Promise<void> {
 
       if (sizeChanged) resizeCanvas(config.winSize);
       canvas.style.opacity = String(config.opacity / 100);
+      // Draw immediately with the current (old) icon so the overlay stays
+      // visually stable while the new icon loads asynchronously.
+      draw();
 
-      // Reload icon if path changed
+      // Reload icon if path changed, then redraw with the new icon.
       if (config.iconPath) {
         const url = resolveIconUrl(config.iconPath);
         const img = new Image();

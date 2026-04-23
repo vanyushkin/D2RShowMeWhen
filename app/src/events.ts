@@ -4,7 +4,7 @@
 // handleGlobalKeydown() — keyboard capture for hotkey assignment
 
 import { invoke } from '@tauri-apps/api/core';
-import { emit } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ctx } from './ctx';
 import { render, setSaveMsg } from './render';
 import { t, tf, setLang } from './i18n';
@@ -16,7 +16,7 @@ import {
   modalConfirm, modalCancel,
   encodeProfiles, decodeProfiles, exportConfig, importConfig,
   saveState, openOverlays, closeOverlays, startWatch, stopWatch,
-  resetOverlayLayout, toggleOverlayEditMode,
+  resetOverlayLayout, toggleOverlayEditMode, applyUiScale, autoSave,
 } from './actions';
 
 // ── bindEvents ────────────────────────────────────────────────────────────────
@@ -33,7 +33,19 @@ export function bindEvents(): void {
     if (!action) return;
 
     if (el instanceof HTMLButtonElement || el.tagName === 'BUTTON') {
-      el.addEventListener('click', () => handleButtonClick(el, action));
+      // Win titlebar buttons: use pointerdown so the event fires before Tauri's
+      // drag-region mousedown handler or WebView2's -webkit-app-region compositor
+      // can swallow it.  preventDefault stops any OS-level caption drag.
+      if (action === 'win-minimize' || action === 'win-close') {
+        el.addEventListener('pointerdown', (e: PointerEvent) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          handleButtonClick(el, action);
+        });
+      } else {
+        el.addEventListener('click', () => handleButtonClick(el, action));
+      }
       return;
     }
 
@@ -43,7 +55,7 @@ export function bindEvents(): void {
           ctx.selectedProfile = el.value;
           ctx.state.activeProfile = el.value;
           ctx.showHotkeyLabels = activeProfile().showHotkeyLabels ?? true;
-          void emit('hotkey-label-changed', ctx.showHotkeyLabels);
+          void invoke('update_overlay_hotkey_labels', { show: ctx.showHotkeyLabels });
           ctx.runningTimers.clear();
           void invoke('stop_all_timers').catch(() => {});
           void invoke<number>('update_hotkey_registrations', { statePayload: ctx.state }).catch(() => {});
@@ -52,7 +64,17 @@ export function bindEvents(): void {
           }
           render();
         } else if (action === 'switch-lang') {
-          setLang(el.value as 'ru' | 'en');
+          const l = el.value as 'ru' | 'en';
+          setLang(l);                     // also updates localStorage cache
+          ctx.state.lang = l;
+          void autoSave();
+          render();
+        } else if (action === 'switch-scale') {
+          const scale = parseInt(el.value, 10);
+          ctx.uiScale = scale;
+          ctx.state.uiScale = scale;
+          applyUiScale(scale);
+          void autoSave();
           render();
         }
       });
@@ -87,7 +109,7 @@ export function bindEvents(): void {
           el.addEventListener('change', () => {
             ctx.showHotkeyLabels = el.checked;
             activeProfile().showHotkeyLabels = ctx.showHotkeyLabels;
-            void emit('hotkey-label-changed', ctx.showHotkeyLabels);
+            void invoke('update_overlay_hotkey_labels', { show: ctx.showHotkeyLabels });
             render();
           });
           break;
@@ -200,6 +222,14 @@ export function handleButtonClick(el: HTMLElement, action: string): void {
     case 'capture-layout-edit2':
       if (ctx.capturingGlobalHotkey === 'layoutEdit2') { ctx.capturingGlobalHotkey = null; render(); }
       else { ctx.capturingGlobalHotkey = 'layoutEdit2'; ctx.capturingHotkeyIndex = null; setSaveMsg(t('msgCapturingLayoutEdit2'), 'idle'); }
+      break;
+
+    // Windows custom title bar controls
+    case 'win-minimize':
+      void getCurrentWindow().minimize();
+      break;
+    case 'win-close':
+      void getCurrentWindow().close();
       break;
 
     // macOS permission

@@ -2,7 +2,7 @@
 
 Based on D2R Show Me When v3.0 by GlassCannon — rewritten in Tauri/Rust for
 cross-platform support (macOS Apple Silicon, Windows, Linux/Steam Deck).
-Current release: **1.0.3**
+Current release: **1.0.25**
 
 ---
 
@@ -195,7 +195,7 @@ app/
 ```
 
 The hotkey listener runs in three threads:
-1. **OS capture** — raw events via CGEventTap (macOS) / SetWindowsHookEx (Windows) / X11 (Linux)
+1. **OS capture** — raw events via CGEventTap (macOS) / GetAsyncKeyState polling (Windows) / rdev X11 (Linux)
 2. **hotkey matching** — checks fired events against registered hotkeys, starts timers
 3. **tick loop** — emits `timer_tick` events every ~250 ms to drive the UI countdown
 
@@ -235,7 +235,8 @@ npm run tauri:build
 - **Mouse button hotkey recording**: the UI recorder only captures keyboard combos.
   Mouse button hotkeys must be typed manually (e.g. `mouse_x1`).
 - **macOS window style**: The app uses `titleBarStyle: Overlay` so the native traffic-light
-  buttons float over the app's own titlebar. On Windows and Linux the native titlebar sits
-  above the WebView as normal (no custom titlebar padding is applied on those platforms).
+  buttons float over the app's own titlebar. On Windows, `set_decorations(false)` is called
+  at startup and a custom HTML titlebar (with minimize/close buttons) replaces the native one.
+  On Linux the native titlebar remains.
 - **macOS close button**: Clicking the red close button (or pressing ⌘Q) fully quits the
   app. There is no hide-to-background/dock behaviour.

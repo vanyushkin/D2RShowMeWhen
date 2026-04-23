@@ -1,6 +1,6 @@
 [package]
 name = "d2rshowmewhen-app"
-version = "1.0.3"
+version = "1.0.25"
 description = "Cross-platform D2RShowMeWhen rewrite"
 authors = ["vanyushkin"]
 license = "MIT"
@@ -20,7 +20,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 base64 = "0.22"
 log = "0.4"
-tauri = { version = "2.10.0", features = ["protocol-asset", "macos-private-api"] }
+tauri = { version = "2.10.0", features = ["protocol-asset", "macos-private-api", "devtools"] }
 tauri-plugin-log = "2"
 dirs = "6.0.0"
 thiserror = "2.0.17"

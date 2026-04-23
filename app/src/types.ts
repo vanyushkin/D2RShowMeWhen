@@ -31,6 +31,14 @@ export type AppState = {
   layoutEditHotkey2: string;
   layoutEditEnabled: boolean;
   autoShowOverlays: boolean;
+  /** UI language ("en" | "ru"). Empty string = not yet set (migrated from localStorage). */
+  lang: string;
+  /** UI zoom percentage (100 = default). Zero = not yet set (migrated from localStorage). */
+  uiScale: number;
+  /** Last saved window width in logical pixels (0 = use default). */
+  windowWidth: number;
+  /** Last saved window height in logical pixels (0 = use default). */
+  windowHeight: number;
 };
 
 export type IconAsset = {

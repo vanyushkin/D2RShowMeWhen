@@ -246,15 +246,25 @@ export function render(): void {
   const layoutEdit2Capturing = ctx.capturingGlobalHotkey === 'layoutEdit2';
 
   ctx.root.innerHTML = `
-    <div class="titlebar" data-tauri-drag-region>
+    <div class="titlebar">
       <span class="app-title" data-tauri-drag-region>D2R Show Me When</span>
+      <span class="titlebar-drag-fill" data-tauri-drag-region></span>
       <div class="titlebar-right">
         <label class="lang-label">${t('langLabel')}</label>
         <select class="lang-select" data-action="switch-lang">
           <option value="ru" ${lang === 'ru' ? 'selected' : ''}>RU</option>
           <option value="en" ${lang === 'en' ? 'selected' : ''}>EN</option>
         </select>
+        <select class="scale-select" data-action="switch-scale" title="${t('scaleLabel')}">
+          ${[100, 125, 150, 175, 200, 225, 250].map(s =>
+            `<option value="${s}" ${ctx.uiScale === s ? 'selected' : ''}>${s}%</option>`
+          ).join('')}
+        </select>
         <span class="platform-badge">${platformLabel(ctx.bootstrap.platform.kind)}</span>
+        <div class="win-controls">
+          <button class="win-btn win-min" data-action="win-minimize" title="Minimize">−</button>
+          <button class="win-btn win-close" data-action="win-close" title="Close">✕</button>
+        </div>
       </div>
     </div>
 

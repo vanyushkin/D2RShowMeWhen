@@ -51,10 +51,19 @@ button, input, select { font: inherit; }
   padding: 7px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  -webkit-app-region: drag;
   user-select: none;
+}
+
+/* Flex spacer that serves as the drag region between the title text and
+   the right-side controls.  data-tauri-drag-region (HTML attr) is set in
+   render.ts to trigger the Tauri JS startDragging() handler.
+   We deliberately omit -webkit-app-region: drag here because WebView2's
+   compositor-level HTCAPTION region can swallow clicks on nearby buttons
+   even when those buttons are in a -webkit-app-region: no-drag parent. */
+.titlebar-drag-fill {
+  flex: 1;
+  align-self: stretch;
 }
 
 /* Reserve space for macOS traffic-light buttons (close/min/fullscreen).
@@ -91,14 +100,54 @@ button, input, select { font: inherit; }
   color: var(--muted);
 }
 
-.lang-select {
+.lang-select,
+.scale-select {
   font-size: 10px;
-  background: rgba(255,255,255,0.05);
+  background: var(--panel-strong);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
   padding: 1px 4px;
   cursor: pointer;
+  color-scheme: dark;
+}
+
+/* Windows custom window controls — hidden by default, shown on platform-windows */
+.win-controls {
+  display: none;
+  gap: 0;
+  margin-left: 4px;
+}
+
+body.platform-windows .win-controls {
+  display: flex;
+}
+
+.win-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  width: 26px;
+  height: 20px;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s, color 0.1s;
+  position: relative; /* establish stacking context */
+  z-index: 100;       /* stay above any drag-region overlay */
+  pointer-events: all;
+}
+
+.win-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+}
+
+.win-close:hover {
+  background: #c42b1c;
+  color: #ffffff;
 }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */

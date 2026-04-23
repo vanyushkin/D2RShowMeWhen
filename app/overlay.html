@@ -10,11 +10,19 @@
       height: 100%;
       overflow: hidden;
       background: transparent;
+      /* Clip entire document to the drawn circle at the browser compositor
+         level — DPI-agnostic, no Win32 SetWindowRgn maths needed.
+         calc(50% - 8px) matches the 8px canvas padding in overlay.ts. */
+      clip-path: circle(calc(50% - 8px) at center);
     }
     canvas {
       position: fixed;
       top: 0;
       left: 0;
+      /* Belt-and-suspenders: clip the canvas element itself in addition to the
+         html/body rule above.  position:fixed elements may escape their
+         ancestor's clip-path in some WebView2 versions. */
+      clip-path: circle(calc(50% - 8px) at center);
     }
     /* Drag region: covers the whole window in edit mode.
        data-tauri-drag-region is handled natively by Tauri/WKWebView

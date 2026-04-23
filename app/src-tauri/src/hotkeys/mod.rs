@@ -258,6 +258,11 @@ fn key_to_modifier(key: &Key) -> Option<HotkeyModifier> {
 #[cfg(target_os = "macos")]
 mod macos_tap;
 
+/// On Windows, rdev's WH_KEYBOARD_LL hook is unreliable (silently blocked by
+/// security software on some systems). We use GetAsyncKeyState polling instead.
+#[cfg(target_os = "windows")]
+mod windows_keyboard;
+
 /// Trigger the macOS system permission dialog for Input Monitoring.
 #[cfg(target_os = "macos")]
 pub fn request_input_monitoring_access() {
@@ -286,8 +291,21 @@ pub fn start(
         }
     });
 
-    #[cfg(not(target_os = "macos"))]
+    // On Windows, rdev's WH_KEYBOARD_LL is unreliable (silently dropped on
+    // some systems).  Use GetAsyncKeyState polling instead — same channel,
+    // same rdev event types, no other changes needed downstream.
+    #[cfg(target_os = "windows")]
     std::thread::spawn(move || {
+        let _ = error_app; // not needed on Windows (no hotkey_listener_error path)
+        log::info!("Input listener thread started (GetAsyncKeyState polling)");
+        windows_keyboard::poll(event_tx);
+        log::error!("Input listener thread exited (channel closed)");
+    });
+
+    // Linux (and any other non-macOS, non-Windows target): use rdev.
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    std::thread::spawn(move || {
+        log::info!("Input listener thread started (rdev)");
         if let Err(err) = rdev::listen(move |ev| {
             let _ = event_tx.send(ev);
         }) {
@@ -299,6 +317,9 @@ pub fn start(
             );
             let _ = error_app.emit("hotkey_listener_error", msg);
         }
+        // If we reach here rdev::listen() returned Ok — the hook exited
+        // without an error, which should not happen during normal operation.
+        log::error!("Input listener thread exited unexpectedly (rdev::listen returned Ok)");
     });
 
     // Thread 2: hotkey matching — reads events, fires timers when hotkeys match.
@@ -308,6 +329,7 @@ pub fn start(
     let watching2 = watching.clone();
     let global2 = global_hotkeys.clone();
     std::thread::spawn(move || {
+        log::info!("Hotkey matching thread started");
         let mut pressed_mods: HashSet<HotkeyModifier> = HashSet::new();
 
         while let Ok(event) = event_rx.recv() {
@@ -347,6 +369,8 @@ pub fn start(
                 _ => {}
             }
         }
+        // Channel closed — Thread 1 (rdev) must have exited.
+        log::error!("Hotkey matching thread exiting — event channel closed");
     });
 
     // Thread 3: timer tick loop — emits timer_tick events every ~250 ms.

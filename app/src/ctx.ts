@@ -51,6 +51,10 @@ export const ctx = {
   // Per-profile UI flag (mirrored from profile.showHotkeyLabels)
   showHotkeyLabels: true,
 
+  // UI zoom level (100 = default). Read from localStorage on startup,
+  // applied via document.documentElement.style.zoom.
+  uiScale: 100,
+
   // ── Lookup maps & DOM ─────────────────────────────────────────────────────
   iconMap: new Map<string, IconAsset>(),
   runningTimers: new Map<number, RunningTimer>(),
