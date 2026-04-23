@@ -1,6 +1,6 @@
 [package]
 name = "d2rshowmewhen-app"
-version = "1.0.25"
+version = "1.0.26"
 description = "Cross-platform D2RShowMeWhen rewrite"
 authors = ["vanyushkin"]
 license = "MIT"
