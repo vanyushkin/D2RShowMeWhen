@@ -2,6 +2,8 @@
 
 Countdown timer overlay for Diablo II: Resurrected. Press a hotkey — a timer appears on screen above the game.
 
+![D2R Show Me When — main window](docs/screenshots/main-window.jpg)
+
 ## Features
 
 - Global hotkeys (keyboard + mouse buttons) trigger countdown timers
