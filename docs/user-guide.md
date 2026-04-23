@@ -29,16 +29,6 @@ Modifier names: `ctrl`, `alt`, `shift`, `cmd` (macOS) / `win` (Windows)
 
 The UI hotkey recorder only captures keyboard combos. To assign a mouse button hotkey, type the string directly into the hotkey field (e.g. `mouse_x1`) — it will be accepted and will fire correctly.
 
-## Migration from the Legacy Python App (macOS only)
-
-On first launch the app automatically imports profiles from the old Python-based D2R Show Me When if the file exists at:
-
-```
-~/Library/Application Support/D2R_Show_Me_When_Mac/profiles.json
-```
-
-No manual action required. If migration ran, the profiles appear in the profile selector immediately.
-
 ## Known Limitations
 
 - **Wayland**: global hotkeys are blocked by the Wayland security model. Use an X11 session. On Steam Deck use Desktop Mode (which runs X11).
