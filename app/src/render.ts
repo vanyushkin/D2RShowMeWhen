@@ -268,15 +268,26 @@ export function render(): void {
       </div>
     </div>
 
-    ${ctx.listenerError ? `
-    <div class="listener-error-banner visible">
-      <div class="listener-error-text">${ctx.listenerError}</div>
-      <div class="listener-error-footer">
-        <button class="btn sm" data-action="open-privacy-settings">${t('btnOpenPrivacySettings')}</button>
-        <button class="btn sm primary" data-action="reset-input-monitoring">${t('btnResetPermission')}</button>
-        <span class="listener-error-hint">${t('msgInputMonitoringHint')}</span>
-      </div>
-    </div>` : ''}
+    ${ctx.listenerError ? (() => {
+      const pk = ctx.bootstrap?.platform?.kind;
+      let footer = '';
+      if (pk === 'macos') {
+        footer = `<div class="listener-error-footer">
+          <button class="btn sm" data-action="open-privacy-settings">${t('btnOpenPrivacySettings')}</button>
+          <button class="btn sm primary" data-action="reset-input-monitoring">${t('btnResetPermission')}</button>
+          <span class="listener-error-hint">${t('msgInputMonitoringHint')}</span>
+        </div>`;
+      } else if (pk === 'linux-x11') {
+        footer = `<div class="listener-error-footer">
+          <span class="listener-error-hint">${t('msgLinuxInputHint')}</span>
+          <span class="listener-error-hint">${t('msgLinuxCompositorHint')}</span>
+        </div>`;
+      }
+      return `<div class="listener-error-banner visible">
+        <div class="listener-error-text">${ctx.listenerError}</div>
+        ${footer}
+      </div>`;
+    })() : ''}
 
     <div class="profile-bar">
       <span class="profile-label">${t('profile')}</span>
