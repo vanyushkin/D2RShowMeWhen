@@ -10,7 +10,7 @@ import { ctx } from './ctx';
 import { cloneState, ensureProfileSelection } from './utils';
 import { render, setBindEventsCallback } from './render';
 import { bindEvents } from './events';
-import { setLang } from './i18n';
+import { setLang, t } from './i18n';
 import { wireModalCallbacks, openOverlays, handleTimerTick, toggleOverlayEditMode, applyUiScale, autoSave } from './actions';
 import type { BootstrapPayload, TimerTickPayload } from './types';
 
@@ -86,6 +86,11 @@ export async function bootstrapApp(): Promise<void> {
       ctx.state.lang = resolved;
       void autoSave();
     }
+  }
+
+  // ── Linux Wayland: hotkeys not supported — show banner immediately ────────
+  if (ctx.bootstrap.platform.kind === 'linux-wayland') {
+    ctx.listenerError = t('msgWaylandError');
   }
 
   // ── Restore UI scale preference ───────────────────────────────────────────
