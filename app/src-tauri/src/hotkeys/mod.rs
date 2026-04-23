@@ -311,8 +311,9 @@ pub fn start(
         }) {
             log::error!("Global input listener failed to start: {:?}", err);
             let msg = format!(
-                "Input monitoring unavailable ({:?}). \
-                 On macOS grant Input Monitoring in System Settings → Privacy.",
+                "Global hotkey listener failed to start: {:?}. \
+                 On Linux, the current user must be in the 'input' group: \
+                 sudo usermod -aG input $USER  (then log out and back in).",
                 err
             );
             let _ = error_app.emit("hotkey_listener_error", msg);
