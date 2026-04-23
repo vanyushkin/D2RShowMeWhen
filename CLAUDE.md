@@ -283,8 +283,10 @@ absolute path. `convertFileSrc()` converts that to an `asset://` URL under
 
 ---
 
-## Developer docs  `doc/`
+## Developer docs  `docs/`
 
 | File | Contents |
 |------|----------|
-| `doc/running.md` | Requirements, dev/build commands, config paths, hotkey format, architecture overview |
+| `docs/architecture.md` | Tech stack, directory layout, frontend dependency graph, hotkey threads, overlay lifecycle, platform model |
+| `docs/developer-guide.md` | Requirements, dev setup, production build, CI/cross-compilation, release checklist |
+| `docs/user-guide.md` | Config paths, hotkey format reference, migration from Python app, known limitations |

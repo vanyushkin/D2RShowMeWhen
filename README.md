@@ -101,6 +101,12 @@ Linux builds are provided and the code paths are in place, but overlay behaviour
 - **macOS unsigned**: Input Monitoring permission must be granted manually. The app shows a red banner if the hotkey listener fails to start.
 - **Mouse hotkey recording**: the UI recorder captures keyboard only. Type mouse hotkeys manually (e.g. `mouse_x1`).
 
+## Documentation
+
+- [User Guide](docs/user-guide.md) — config paths, hotkey format, migration, known limitations
+- [Developer Guide](docs/developer-guide.md) — requirements, dev setup, build, release checklist
+- [Architecture](docs/architecture.md) — module map, hotkey threads, overlay lifecycle, platform model
+
 ## License
 
 [MIT](LICENSE)
